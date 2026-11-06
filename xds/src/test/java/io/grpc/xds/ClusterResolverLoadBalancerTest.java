@@ -1008,6 +1008,28 @@ public class ClusterResolverLoadBalancerTest {
   }
 
   @Test
+  public void outlierDetection_defaultConfig() {
+    Cluster cluster = EDS_CLUSTER.toBuilder()
+        .setOutlierDetection(OutlierDetection.getDefaultInstance())
+        .build();
+    controlPlaneService.setXdsConfig(ADS_TYPE_URL_CDS, ImmutableMap.of(
+        CLUSTER, cluster));
+    startXdsDepManager();
+
+    verify(helper, never()).updateBalancingState(eq(ConnectivityState.TRANSIENT_FAILURE), any());
+    assertThat(childBalancers).hasSize(1);
+    FakeLoadBalancer childBalancer = Iterables.getOnlyElement(childBalancers);
+    assertThat(childBalancer.name).isEqualTo(PRIORITY_POLICY_NAME);
+    PriorityLbConfig priorityLbConfig = (PriorityLbConfig) childBalancer.config;
+    PriorityChildConfig priorityChildConfig =
+        Iterables.getOnlyElement(priorityLbConfig.childConfigs.values());
+    OutlierDetectionLoadBalancerConfig outlier = (OutlierDetectionLoadBalancerConfig)
+        GracefulSwitchLoadBalancerAccessor.getChildConfig(priorityChildConfig.childConfig);
+    assertThat(outlier.successRateEjection).isNotNull();
+    assertThat(outlier.failurePercentageEjection).isNull();
+  }
+
+  @Test
   public void outlierDetection_disabledConfig() {
     Cluster cluster = EDS_CLUSTER.toBuilder()
         .setOutlierDetection(OutlierDetection.newBuilder()

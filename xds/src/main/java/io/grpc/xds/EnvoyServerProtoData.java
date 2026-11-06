@@ -396,8 +396,8 @@ public final class EnvoyServerProtoData {
       }
 
       FailurePercentageEjection failurePercentageEjection;
-      if (envoyOutlierDetection.hasEnforcingFailurePercentage()
-          && envoyOutlierDetection.getEnforcingFailurePercentage().getValue() == 0) {
+      if (!envoyOutlierDetection.hasEnforcingFailurePercentage()
+          || envoyOutlierDetection.getEnforcingFailurePercentage().getValue() == 0) {
         failurePercentageEjection = null;
       } else {
         Integer threshold = envoyOutlierDetection.hasFailurePercentageThreshold()
